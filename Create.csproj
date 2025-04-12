@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.10.0" /> <!-- Updated version -->
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0-beta.2" />
+    <PackageReference Include="Azure.Search.Documents" Version="11.5.0" /> <!-- Changed to stable version -->
+    <PackageReference Include="DotNetEnv" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Create.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);SKEXP0001,SKEXP0010,SKEXP0020,NU1902,NU1903</NoWarn>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+  </PropertyGroup>
+
+</Project>

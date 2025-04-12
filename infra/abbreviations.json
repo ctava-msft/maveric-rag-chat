@@ -1,0 +1,9 @@
+{
+  "appServicePlans": "asp-",
+  "cosmosDbAccount": "cosmos",
+  "insightsComponents": "appi-",
+  "openAiAccount": "openai",
+  "operationalInsightsWorkspaces": "log-",
+  "storageStorageAccounts": "st",
+  "userAssignedIdentity": "ua-id"
+}
