@@ -26,10 +26,9 @@ public class CreateIndex
                 bool isFilterable = f.GetProperty("filterable").GetBoolean();
                 bool isSortable = f.GetProperty("sortable").GetBoolean();
                 bool isFacetable = f.GetProperty("facetable").GetBoolean();
-
                 bool isCollection = dataType.StartsWith("Collection(");
                 SearchField field;
-
+                Console.WriteLine($"Processing vector field: {name} {dataType} {isCollection}");
                 if (isSearchable && !isKey)
                 {
                     field = new SearchableField(name, isCollection)
@@ -50,6 +49,26 @@ public class CreateIndex
                         IsFacetable = isFacetable
                     };
                 }
+
+                // // If the field is a vector field, assign dimensions and vector search configuration.
+                if (dataType == "Collection(Edm.Single)")
+                {
+                    Console.WriteLine($"Fix me");
+
+                }
+                //     Console.WriteLine($"Processing vector field: {name} {dataType} {field.GetType().GetProperty("dimensions")}");
+                //     var dimsProp = field.GetType().GetProperty("Dimensions", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                //     if (dimsProp != null && f.TryGetProperty("dimensions", out JsonElement dimensionsElement))
+                //     {
+                //         dimsProp.SetValue(field, dimensionsElement.GetInt32());
+                //     }
+                //     var vsConfigProp = field.GetType().GetProperty("VectorSearchConfiguration", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                //     if (vsConfigProp != null && f.TryGetProperty("vectorSearchConfiguration", out JsonElement vsConfigElement))
+                //     {
+                //         vsConfigProp.SetValue(field, vsConfigElement.GetString());
+                //     }
+                // }
+
                 fields.Add(field);
             }
             catch (Exception ex)
@@ -58,6 +77,30 @@ public class CreateIndex
                 throw;
             }
         }
+        return fields;
+    }
+
+    private static List<SearchField> MakeFields()
+    {
+        var fields = new List<SearchField>
+        {
+            new SimpleField("ChunkId", SearchFieldDataType.String) { IsKey = true },
+            new SearchableField("ParentChunkId"),
+            new SimpleField("ChunkSequence", SearchFieldDataType.Int32),
+            new SearchableField("DocumentTitle"),
+            new SearchableField("CitationTitle"),
+            new SearchableField("ChunkText"),
+            new SearchableField("URL"),
+            new SearchableField("PublicationDate"),
+            new SearchableField("ManualType"),
+            new SearchableField("MetaData"),
+            new SearchableField("ContractType"),
+            new SearchField("ChunkVector", SearchFieldDataType.Collection(SearchFieldDataType.Single))
+            {
+                VectorSearchDimensions = 3072,
+                VectorSearchProfileName = "default"
+            }
+        };
         return fields;
     }
 
@@ -101,7 +144,8 @@ public class CreateIndex
         var indexClient = new SearchIndexClient(new Uri(endpoint), credential);
 
         // Load fields from JSON
-        var fields = LoadFieldsFromJson("fields.json");
+        //var fields = LoadFieldsFromJson("fields.json");
+        var fields = MakeFields();
 
         // Define VectorSearch configuration
         var vectorSearch = new VectorSearch();

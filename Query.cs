@@ -32,7 +32,7 @@ namespace MavericRagChat
         private static string _embeddingModelName;
         private static string _chatModelName;
         private static string _vectorFieldName = "ChunkVector";
-        private static string _semanticConfigName = "default-semantic-config";
+        private static string _semanticConfigName = "sema";
 
         static async Task Main(string[] args)
         {
@@ -253,21 +253,18 @@ namespace MavericRagChat
             {
                 try
                 {
-                    var chatCompletionsOptions = new ChatCompletionsOptions
-                    {
-                        Temperature = 0.0f,
-                        MaxTokens = 100,
-                        Messages = 
-                        {
-                            new ChatMessage(ChatRole.System, "You are a search assistant. Rewrite the following query to make it more effective for search, but maintain the original intent and scope."),
-                            new ChatMessage(ChatRole.User, query)
-                        }
-                    };
+                    _logger.LogInformation($"Information {query}");
+                    // var chatOptions = new ChatCompletionsOptions()
+                    // {
+                    //     Temperature = 0.0f,
+                    //     MaxTokens = 100,
+                    // };
+                    // chatOptions.Messages.Add(new ChatMessage(ChatRole.System, "You are a search assistant. Rewrite the following query to make it more effective for search, but maintain the original intent and scope."));
+                    // chatOptions.Messages.Add(new ChatMessage(ChatRole.User, query));
                     
-                    ChatClient client = _openAIClient.GetChatClient(Environment.GetEnvironmentVariable("MODEL_CHAT_DEPLOYMENT_NAME"));
-                    var response = await client.GetChatCompletionsAsync(_chatModelName, chatCompletionsOptions);
-                    
-                    return response.Value.Choices[0].Message.Content.Trim();
+                    // Response<ChatCompletions> response = await _openAIClient.GetChatCompletionsAsync(_chatModelName, chatOptions);
+                    // return response.Value.Choices[0].Message.Content.Trim();
+                    return "" + query + " rewritten"; // Placeholder for actual rewriting logic
                 }
                 catch (Exception ex)
                 {
@@ -452,20 +449,7 @@ namespace MavericRagChat
             {
                 var row = resultsList[i];
                 Console.WriteLine($"Result {i+1}:");
-                Console.WriteLine($"  Score: {row["@search.score"]}");
-                
-                // if (row.ContainsKey("ChunkSequence"))
-                //     Console.WriteLine($"  Chunk Sequence: {row["ChunkSequence"]}");
-                
-                // if (row.ContainsKey("DocumentTitle"))
-                //     Console.WriteLine($"  Document Title: {row["DocumentTitle"]}");
-                
-                // if (row.ContainsKey("ChunkText"))
-                //     Console.WriteLine($"  Text: {row["ChunkText"]}");
-                
-                // if (row.ContainsKey("URL"))
-                //     Console.WriteLine($"  URL: {row["URL"]}");
-                
+                Console.WriteLine($"  Score: {row["@search.score"]}");                
                 Console.WriteLine("");
             }
             
@@ -476,7 +460,7 @@ namespace MavericRagChat
                 _logger.LogInformation($"{searchType} results saved to {outputFile}");
             }
             
-            return null; // In C# we're not returning a styled dataframe
+            return null;
         }
 
         private static async Task<string> SaveToMarkdownAsync(List<Dictionary<string, object>> results, string query, string searchType)
@@ -485,7 +469,9 @@ namespace MavericRagChat
             {
                 var random = new Random();
                 int randomSuffix = random.Next(1000, 9999);
-                string filename = $"output_{randomSuffix}.md";
+                string safeSearchType = searchType.Replace(" ", "_").Replace("+", "plus")
+                    .Replace("(", "").Replace(")", "");
+                string filename = $"output_{safeSearchType}_{randomSuffix}.md";
                 
                 using (var writer = new StreamWriter(filename, false, Encoding.UTF8))
                 {
@@ -493,7 +479,6 @@ namespace MavericRagChat
                     await writer.WriteLineAsync($"Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n");
                     await writer.WriteLineAsync($"## Query\n\n{query}\n");
                     await writer.WriteLineAsync($"## Search Type\n\n{searchType}\n");
-                    
                     await writer.WriteLineAsync("## Search Results\n");
                     
                     foreach (var result in results)

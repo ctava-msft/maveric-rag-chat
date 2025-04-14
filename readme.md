@@ -17,6 +17,13 @@ In order, run the scripts using the following command(s):
 
 ```
 dotnet run --project ./Create.csproj
+```
+Add semantic configuration in search index by hand.
+
+```
 dotnet run --project ./Ingest.csproj
+```
+
+```
 dotnet run --project ./Query.csproj
 ```
