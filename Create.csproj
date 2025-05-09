@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.10.0" /> <!-- Updated version -->
+    <PackageReference Include="Azure.Identity" Version="1.10.4" /> <!-- Updated version -->
     <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0-beta.2" />
     <PackageReference Include="Azure.Search.Documents" Version="11.5.0" /> <!-- Changed to stable version -->
     <PackageReference Include="DotNetEnv" Version="3.0.0" />

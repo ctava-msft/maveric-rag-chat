@@ -15,9 +15,12 @@ using DotNetEnv;
 using DocumentFormat.OpenXml.Packaging;
 using Azure.Identity;
 using System.Text.Json; // Add this for JSON serialization
+using System.Net;               // (+) needed for future status-code checks
 
 public class Ingest
 {
+    // Limit each chunk to ~1 500 words ≈ 2 000 – 2 500 tokens (< 8 191 token limit)
+    private const int WordsPerChunk = 1500;   // (+)
 
     public static async Task Main(string[] args)
     {
@@ -61,7 +64,7 @@ public class Ingest
                 extractedTexts.Add(body.InnerText);
 
                 int chunkSequence = 0; // explicitly track chunk sequence as integer
-                foreach (var chunk in ChunkTextByTokens(body.InnerText, 7000))
+                foreach (var chunk in ChunkTextByTokens(body.InnerText, WordsPerChunk)) // (was 7000)
                 {
                     if (string.IsNullOrWhiteSpace(chunk)) continue;
                     var embedding = await GenerateEmbedding(chunk);

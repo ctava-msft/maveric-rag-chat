@@ -6,6 +6,8 @@ using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using DotNetEnv;
 using Azure.Identity;
+using Azure.Core.Diagnostics;      // +add
+using Azure.Core;                  // +add
 
 public class CreateIndex
 {
@@ -119,8 +121,36 @@ public class CreateIndex
         };
     }
 
+    private static TokenCredential BuildCredential(bool devMode)
+    {
+        // Read an optional tenant override (useful when VS signs-in with a different default tenant)
+        string tenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID");
+
+        if (devMode)
+        {
+            Console.WriteLine("Dev mode detected – using local credentials only.");
+            return new ChainedTokenCredential(
+                new EnvironmentCredential(),
+                new VisualStudioCredential(new VisualStudioCredentialOptions { TenantId = tenantId }),
+                new AzureCliCredential(new AzureCliCredentialOptions { TenantId = tenantId }));
+        }
+
+        var opts = new DefaultAzureCredentialOptions
+        {
+            ExcludeManagedIdentityCredential = true,
+            TenantId = tenantId,
+            VisualStudioTenantId = tenantId,           // keep VS on the same tenant
+            SharedTokenCacheTenantId = tenantId
+        };
+        return new DefaultAzureCredential(opts);
+    }
+
     public static void Main(string[] args)
     {
+        // Enable verbose console logging for all Azure SDK operations
+        using AzureEventSourceListener listener = AzureEventSourceListener.CreateConsoleLogger(
+            System.Diagnostics.Tracing.EventLevel.Verbose);
+
         Env.Load();
 
         var requiredVars = new List<string>
@@ -140,8 +170,39 @@ public class CreateIndex
         string endpoint = Environment.GetEnvironmentVariable("AZURE_AISEARCH_ENDPOINT");
         string indexName = Environment.GetEnvironmentVariable("AZURE_AISEARCH_INDEX_NAME");
 
-        var credential = new DefaultAzureCredential();
-        var indexClient = new SearchIndexClient(new Uri(endpoint), credential);
+        // Configure credential behaviour based on environment
+        bool devMode = string.Equals(
+            Environment.GetEnvironmentVariable("AZURE_DEV_MODE"), "true",
+            StringComparison.OrdinalIgnoreCase);
+
+        string apiKey   = Environment.GetEnvironmentVariable("AZURE_AISEARCH_API_KEY");
+
+        TokenCredential credential = BuildCredential(devMode);
+
+        // Explicitly test token acquisition so failures are surfaced early
+        try
+        {
+            // Mgmt scope – proves we can get *a* token
+            var testMgmt = credential.GetToken(
+                new TokenRequestContext(new[] { "https://management.azure.com/.default" }),
+                System.Threading.CancellationToken.None);
+            Console.WriteLine($"Mgmt token OK – expires: {testMgmt.ExpiresOn}");
+
+            // Search scope – proves it is valid for Cognitive Search
+            var testSearch = credential.GetToken(
+                new TokenRequestContext(new[] { "https://search.azure.com/.default" }),
+                System.Threading.CancellationToken.None);
+            Console.WriteLine($"Search token OK – expires: {testSearch.ExpiresOn}");
+        }
+        catch (AuthenticationFailedException ex)
+        {
+            Console.WriteLine($"Token acquisition failed: {ex.Message}");
+            throw;
+        }
+
+        SearchIndexClient indexClient = !string.IsNullOrEmpty(apiKey)
+            ? new SearchIndexClient(new Uri(endpoint), new Azure.AzureKeyCredential(apiKey))
+            : new SearchIndexClient(new Uri(endpoint), credential);
 
         // Load fields from JSON
         //var fields = LoadFieldsFromJson("fields.json");
